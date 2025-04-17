@@ -6,6 +6,7 @@ from urllib.parse import urljoin
 from playwright.async_api import async_playwright
 import fake_useragent
 import time
+import re
 
 # Генерация случайного User-Agent
 user_agent = fake_useragent.UserAgent().random
@@ -25,15 +26,17 @@ base_url = 'https://nois.su'
 
 # Функция для получения ссылок на группы с использованием aiohttp
 async def groups_link(session):
+    print("[LOG] Старт получения ссылок на группы...")  # [LOG]
     try:
         async with session.get(url, headers=headers, timeout=15) as response:
+            print(f"[LOG] Запрос к {url} выполнен.")  # [LOG]
             response.raise_for_status()
 
             soup = BeautifulSoup(await response.text(), 'lxml')
             groups = soup.find_all('div', class_='item item--lg')
             groups_link_list = [urljoin(base_url, group.find('a')['href']) for group in groups if group.find('a')]
 
-            print(f"Found {len(groups_link_list)} group links.")
+            print(f"[LOG] Найдено {len(groups_link_list)} ссылок на группы.")  # [LOG]
             with open('groups_link_list.txt', 'w', encoding='utf-8') as file:
                 for link in groups_link_list:
                     file.write(f'{link}\n')
@@ -41,7 +44,7 @@ async def groups_link(session):
             return groups_link_list
 
     except aiohttp.ClientError as e:
-        print(f"Error fetching groups: {e}")
+        print(f"[ERROR] Ошибка при получении групп: {e}")  # [LOG]
         return []
 
 
@@ -54,6 +57,28 @@ async def subgroups_link(session, groups_link_list):
             try:
                 async with session.get(group_link, headers=headers, timeout=15) as response:
                     response.raise_for_status()
+
+                    if group_link.endswith('/podyemnye-mekhanizmy/'):
+                        print(f"[LOG] AVENTOS-группа найдена: {group_link}")
+                        nested_links = [
+                            urljoin(base_url, '/catalog/blum/podyemnye-mekhanizmy/aventos/'),
+                            urljoin(base_url, '/catalog/blum/podyemnye-mekhanizmy/aventos-top_2/')
+                        ]
+
+                        for nested_url in nested_links:
+                            print(f"[LOG] Переход на вложенную подгруппу: {nested_url}")
+                            try:
+                                async with session.get(nested_url, headers=headers, timeout=15) as nested_resp:
+                                    nested_resp.raise_for_status()
+                                    nested_soup = BeautifulSoup(await nested_resp.text(), 'lxml')
+                                    nested_items = nested_soup.find_all('div', class_='item item--lg')
+                                    for nested_item in nested_items:
+                                        href = nested_item.find('a', class_='item-img')['href']
+                                        if href:
+                                            full_link = urljoin(base_url, href)
+                                            subgroups_link_list.append(full_link)
+                            except Exception as ex:
+                                print(f"[ERROR] Ошибка при переходе к подгруппе AVENTOS: {nested_url}\n{ex}")
 
                     soup = BeautifulSoup(await response.text(), 'lxml')
                     item_subgroup = soup.find('div', class_='item-list item-list--full')
@@ -164,6 +189,11 @@ async def subgroups_link(session, groups_link_list):
     finally:
         if browser:  # Проверяем, был ли инициализирован браузер перед его закрытием
             await browser.close()
+
+    subgroups_link_list = [
+        link for link in subgroups_link_list
+        if not re.match(r'.*/aventos(-top_2)?/?$', link)
+    ]
 
     print(f"Total subgroups links found: {len(subgroups_link_list)}")
     with open('subgroups_link_list.txt', 'w', encoding='utf-8') as file:

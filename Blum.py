@@ -3,7 +3,7 @@ import json
 import os
 
 # Указание пути для сохранения Excel-файла
-folder_path = r'E:\pythonProjectsForUniversity\pythonProject\Exsel_table\Blum.xlsx'
+folder_path = r'E:\pythonProjectsForUniversity\WORK\HONC\Blum.xlsx'
 
 # Установите текущий курс рубля к евро
 exchange_rate = 0.012  # Пример: 1 рубль = 0.012 евро
@@ -65,10 +65,10 @@ os.makedirs(os.path.dirname(folder_path), exist_ok=True)
 combined_df.to_excel(folder_path, index=False, engine='openpyxl')
 
 # Сохранение обновленных JSON-файлов (по желанию)
-with open('items_converted.json', 'w', encoding='utf-8') as file:
-    json.dump(data1, file, ensure_ascii=False, indent=4)
-
-with open('items_2_converted.json', 'w', encoding='utf-8') as file:
-    json.dump(data2, file, ensure_ascii=False, indent=4)
+# with open('items_converted.json', 'w', encoding='utf-8') as file:
+#     json.dump(data1, file, ensure_ascii=False, indent=4)
+#
+# with open('items_2_converted.json', 'w', encoding='utf-8') as file:
+#     json.dump(data2, file, ensure_ascii=False, indent=4)
 
 print("Цены успешно преобразованы и сохранены в файл 'Blum.xlsx'")
