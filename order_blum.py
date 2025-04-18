@@ -32,6 +32,7 @@ async def groups_link(session):
             print(f"[LOG] Запрос к {url} выполнен.")  # [LOG]
             response.raise_for_status()
 
+
             soup = BeautifulSoup(await response.text(), 'lxml')
             groups = soup.find_all('div', class_='item item--lg')
             groups_link_list = [urljoin(base_url, group.find('a')['href']) for group in groups if group.find('a')]
